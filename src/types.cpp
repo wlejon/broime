@@ -57,6 +57,28 @@ const std::unordered_map<std::string_view, KeySym>& named_keysyms_table() {
         {"dead_horn", keysyms::DeadHorn},
         {"dead_stroke", keysyms::DeadStroke},
 
+        // Dead keys (PascalCase / JS Key names)
+        {"DeadGrave", keysyms::DeadGrave},
+        {"DeadAcute", keysyms::DeadAcute},
+        {"DeadCircumflex", keysyms::DeadCircumflex},
+        {"DeadTilde", keysyms::DeadTilde},
+        {"DeadMacron", keysyms::DeadMacron},
+        {"DeadBreve", keysyms::DeadBreve},
+        {"DeadAboveDot", keysyms::DeadAboveDot},
+        {"DeadDiaeresis", keysyms::DeadDiaeresis},
+        {"DeadAboveRing", keysyms::DeadAboveRing},
+        {"DeadDoubleAcute", keysyms::DeadDoubleAcute},
+        {"DeadCaron", keysyms::DeadCaron},
+        {"DeadCedilla", keysyms::DeadCedilla},
+        {"DeadOgonek", keysyms::DeadOgonek},
+        {"DeadIota", keysyms::DeadIota},
+        {"DeadVoicedSound", keysyms::DeadVoicedSound},
+        {"DeadSemivoicedSound", keysyms::DeadSemivoicedSound},
+        {"DeadBelowDot", keysyms::DeadBelowDot},
+        {"DeadHook", keysyms::DeadHook},
+        {"DeadHorn", keysyms::DeadHorn},
+        {"DeadStroke", keysyms::DeadStroke},
+
         // Common punctuation names in XCompose
         {"exclam", '!'},
         {"quotedbl", '"'},
@@ -140,6 +162,25 @@ uint32_t decode_utf8(std::string_view utf8) {
     return 0;
 }
 
+const std::unordered_map<std::string, KeySym>& normalized_keysyms_table() {
+    static const auto norm_map = []() {
+        std::unordered_map<std::string, KeySym> map;
+        for (const auto& [entry_name, sym] : named_keysyms_table()) {
+            if (entry_name.size() == 1) continue;
+            std::string entry_norm;
+            entry_norm.reserve(entry_name.size());
+            for (char c : entry_name) {
+                if (c != '_' && c != '-') {
+                    entry_norm.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+                }
+            }
+            map.emplace(std::move(entry_norm), sym);
+        }
+        return map;
+    }();
+    return norm_map;
+}
+
 } // namespace
 
 KeySym keysym_from_name(std::string_view name) {
@@ -150,6 +191,20 @@ KeySym keysym_from_name(std::string_view name) {
     auto it = table.find(name);
     if (it != table.end()) {
         return it->second;
+    }
+
+    // Try normalized match (ignore case and underscores/dashes)
+    std::string norm;
+    norm.reserve(name.size());
+    for (char c : name) {
+        if (c != '_' && c != '-') {
+            norm.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        }
+    }
+    const auto& norm_table = normalized_keysyms_table();
+    auto norm_it = norm_table.find(norm);
+    if (norm_it != norm_table.end()) {
+        return norm_it->second;
     }
 
     // Single character ASCII e.g. "a", "A", "7"
