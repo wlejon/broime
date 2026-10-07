@@ -62,7 +62,8 @@ include "%L"
     CHECK_EQ(r_hex.text, "AB");
 
     // 2. Load from file
-    std::string temp_file = "/tmp/test_xcompose_file.txt";
+    std::string temp_file =
+        (std::filesystem::temp_directory_path() / "test_xcompose_file.txt").string();
     {
         std::ofstream out(temp_file);
         out << "<Multi_key> <f> <i> <l> <e> : \"file_match\"\n";

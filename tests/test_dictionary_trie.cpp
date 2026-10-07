@@ -69,7 +69,8 @@ int main() {
     CHECK_EQ(des_prefix[3].text, "helmet");
 
     // 5. File I/O save & load
-    std::string temp_path = "/tmp/test_broime_dict.bin";
+    std::string temp_path =
+        (std::filesystem::temp_directory_path() / "test_broime_dict.bin").string();
     CHECK(trie.save_to_file(temp_path));
 
     DictionaryTrie file_trie;
