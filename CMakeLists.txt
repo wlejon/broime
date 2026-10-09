@@ -48,7 +48,7 @@ function(broime_warnings target)
 endfunction()
 
 # ---- brosearch -----------------------------------------------------------------
-bro_dependency(brosearch GITHUB wlejon/brosearch REF e408e853181e353e086d547b6d1d3e9cc1c0167f
+bro_dependency(brosearch GITHUB wlejon/brosearch
                OPTIONS BROSEARCH_BUILD_TESTS=OFF BROSEARCH_BUILD_TOOLS=OFF)
 
 set(BROIME_SOURCES
@@ -78,7 +78,7 @@ option(BROIME_ENABLE_API "Build Bronze JavaScript API" ${PROJECT_IS_TOP_LEVEL})
 if(BROIME_ENABLE_API)
     # bronze, the JavaScript runtime the api binds (it brings its code
     # generator, brass).
-    bro_dependency(bronze GITHUB wlejon/bronze REF 15ce4cf5fc25d8afe03882985ae95adcba46a6a9 TARGET bronze_runtime_shared
+    bro_dependency(bronze GITHUB wlejon/bronze TARGET bronze_runtime_shared
                    OPTIONS BRONZE_BUILD_SHARED_RUNTIME=ON BRONZE_BUILD_TESTS=OFF)
 
     add_subdirectory(src/api)
