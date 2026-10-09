@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.24)
 
 project(broime VERSION 0.1.0 LANGUAGES C CXX)
 
+# Dependencies (cmake/bro_deps.cmake): an outer project's target wins (under bro
+# these are all bro's), else the ../<name> working tree beside the top-level
+# project, else the pinned commit, fetched at configure.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/bro_deps.cmake)
+
 if(MSVC)
     # The DLL CRT, so the tests share one heap with bronze_runtime_shared.
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
@@ -43,24 +48,8 @@ function(broime_warnings target)
 endfunction()
 
 # ---- brosearch -----------------------------------------------------------------
-if(NOT TARGET brosearch)
-    set(BROSEARCH_DIR "${CMAKE_SOURCE_DIR}/../brosearch" CACHE PATH
-        "Path to the standalone brosearch repo")
-    set(BROSEARCH_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(BROSEARCH_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-    if(EXISTS "${BROSEARCH_DIR}/CMakeLists.txt")
-        message(STATUS "broime: brosearch from ${BROSEARCH_DIR}")
-        add_subdirectory("${BROSEARCH_DIR}" "${CMAKE_BINARY_DIR}/brosearch" EXCLUDE_FROM_ALL)
-    elseif(EXISTS "${CMAKE_SOURCE_DIR}/third_party/brosearch/CMakeLists.txt")
-        message(STATUS "broime: brosearch from ${CMAKE_SOURCE_DIR}/third_party/brosearch (submodule)")
-        add_subdirectory("${CMAKE_SOURCE_DIR}/third_party/brosearch" "${CMAKE_BINARY_DIR}/brosearch"
-                         EXCLUDE_FROM_ALL)
-    else()
-        message(FATAL_ERROR
-            "broime needs brosearch: not found at ${BROSEARCH_DIR} or "
-            "${CMAKE_SOURCE_DIR}/third_party/brosearch.")
-    endif()
-endif()
+bro_dependency(brosearch GITHUB wlejon/brosearch REF e408e853181e353e086d547b6d1d3e9cc1c0167f
+               OPTIONS BROSEARCH_BUILD_TESTS=OFF BROSEARCH_BUILD_TOOLS=OFF)
 
 set(BROIME_SOURCES
     src/types.cpp
@@ -87,25 +76,10 @@ target_link_libraries(broime PUBLIC brosearch)
 # --- Standalone Bronze JavaScript API ---
 option(BROIME_ENABLE_API "Build Bronze JavaScript API" ${PROJECT_IS_TOP_LEVEL})
 if(BROIME_ENABLE_API)
-    if(NOT TARGET bronze_runtime_shared)
-        set(BRONZE_BUILD_SHARED_RUNTIME ON CACHE BOOL "" FORCE)
-        set(BRONZE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-        if(DEFINED BRONZE_DIR AND EXISTS "${BRONZE_DIR}/CMakeLists.txt")
-            # Explicit BRONZE_DIR supplied
-        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../bronze/CMakeLists.txt")
-            set(BRONZE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../bronze" CACHE PATH "bronze source tree")
-        elseif(EXISTS "${CMAKE_SOURCE_DIR}/../bronze/CMakeLists.txt")
-            set(BRONZE_DIR "${CMAKE_SOURCE_DIR}/../bronze" CACHE PATH "bronze source tree")
-        endif()
-
-        if(NOT BRONZE_DIR OR NOT EXISTS "${BRONZE_DIR}/CMakeLists.txt")
-            message(FATAL_ERROR
-                "bronze not found: check it out beside this repository (../bronze, with ../brass beside it) "
-                "or pass -DBRONZE_DIR=<path>.")
-        endif()
-
-        add_subdirectory("${BRONZE_DIR}" "${CMAKE_BINARY_DIR}/bronze-build" EXCLUDE_FROM_ALL)
-    endif()
+    # bronze, the JavaScript runtime the api binds (it brings its code
+    # generator, brass).
+    bro_dependency(bronze GITHUB wlejon/bronze REF 15ce4cf5fc25d8afe03882985ae95adcba46a6a9 TARGET bronze_runtime_shared
+                   OPTIONS BRONZE_BUILD_SHARED_RUNTIME=ON BRONZE_BUILD_TESTS=OFF)
 
     add_subdirectory(src/api)
 endif()

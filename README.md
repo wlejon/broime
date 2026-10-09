@@ -90,7 +90,10 @@ All source files are strictly decomposed and kept under 500 lines.
 - CMake 3.24+
 - C++20 compliant compiler (GCC 12+, Clang 15+, MSVC 2022)
 - Ninja
-- `brosearch` repository located beside `broime` at `../brosearch`
+- Nothing else to check out: `brosearch` and, for the JavaScript binding, bronze are
+  `bro_dependency()` pins in `CMakeLists.txt` (`cmake/bro_deps.cmake`), taken from a working
+  tree at `../<name>` when there is one and otherwise fetched at configure (override with
+  `-DFETCHCONTENT_SOURCE_DIR_<NAME>=<path>`)
 
 ### Build
 ```bash
