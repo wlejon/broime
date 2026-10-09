@@ -12,7 +12,7 @@ concurrency:
 
 # broime builds on brosearch (its fuzzy matcher), and its JavaScript binding
 # (broime_api) binds bronze (with brass). Every job builds a plain clone: those
-# come from the commits CMakeLists.txt pins (cmake/bro_deps.cmake), fetched at
+# come from the heads of their main branches (cmake/bro_deps.cmake), fetched at
 # configure.
 jobs:
   test:
