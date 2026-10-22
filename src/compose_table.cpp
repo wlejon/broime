@@ -210,7 +210,7 @@ ComposeResult ComposeEngine::feed(KeySym sym) {
             if (root_it != impl_->root->children.end()) {
                 impl_->current_node = root_it->second.get();
                 impl_->current_seq.push_back(sym);
-                if (impl_->current_node->is_terminal && impl_->current_node->children.empty()) {
+                if (impl_->current_node->is_terminal) {
                     std::string text = impl_->current_node->result_utf8;
                     impl_->last_match = text;
                     impl_->reset_state();
@@ -226,7 +226,7 @@ ComposeResult ComposeEngine::feed(KeySym sym) {
     impl_->current_node = it->second.get();
     impl_->current_seq.push_back(sym);
 
-    if (impl_->current_node->is_terminal && impl_->current_node->children.empty()) {
+    if (impl_->current_node->is_terminal) {
         std::string text = impl_->current_node->result_utf8;
         impl_->last_match = text;
         impl_->reset_state();

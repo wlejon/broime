@@ -13,6 +13,7 @@ struct ImeEngine::Impl {
 
     InputMode mode = InputMode::Dictionary;
     std::string preedit_buffer;
+    std::string compose_preedit;
     size_t cursor_pos = 0;
 
     void update_candidates_from_preedit() {
@@ -41,24 +42,51 @@ bool ImeEngine::feed_key(KeySym sym, std::string* committed_text) {
 
     // 1. If currently in a compose sequence, feed compose engine first
     if (impl_->compose.is_composing()) {
+        ComposeSequence prev_seq = impl_->compose.current_sequence();
         auto res = impl_->compose.feed(sym);
         if (res.is_matched()) {
             if (committed_text) {
                 *committed_text = res.text;
             }
-            impl_->preedit_buffer.clear();
-            impl_->cursor_pos = 0;
-            return true;
-        }
-        if (res.is_pending()) {
-            impl_->preedit_buffer = impl_->compose.current_sequence().to_string();
+            impl_->compose_preedit.clear();
             impl_->cursor_pos = impl_->preedit_buffer.size();
             return true;
         }
+        if (res.is_pending()) {
+            impl_->compose_preedit = impl_->compose.current_sequence().to_string();
+            if (impl_->preedit_buffer.empty()) {
+                impl_->cursor_pos = impl_->compose_preedit.size();
+            }
+            return true;
+        }
         // Sequence failed / cancelled
-        impl_->preedit_buffer.clear();
-        impl_->cursor_pos = 0;
-        return false;
+        impl_->compose_preedit.clear();
+        impl_->cursor_pos = impl_->preedit_buffer.size();
+
+        if (impl_->mode == InputMode::Compose) {
+            std::string ascii_prefix;
+            bool all_ascii = !prev_seq.empty();
+            for (KeySym k : prev_seq.keys) {
+                if (k >= 0x20 && k <= 0x7E) {
+                    ascii_prefix.push_back(static_cast<char>(k));
+                } else {
+                    all_ascii = false;
+                    break;
+                }
+            }
+            if (all_ascii) {
+                if (sym >= 0x20 && sym <= 0x7E) {
+                    ascii_prefix.push_back(static_cast<char>(sym));
+                }
+                if (committed_text) {
+                    *committed_text = std::move(ascii_prefix);
+                }
+                return true;
+            }
+            return false;
+        }
+        // In Dictionary mode, fall through so the non-matching key is processed normally
+        // while preserving any existing dictionary preedit_buffer.
     }
 
     // 2. Check if key initiates a compose sequence (e.g. MultiKey or dead key)
@@ -70,11 +98,15 @@ bool ImeEngine::feed_key(KeySym sym, std::string* committed_text) {
             if (committed_text) {
                 *committed_text = res.text;
             }
+            impl_->compose_preedit.clear();
+            impl_->cursor_pos = impl_->preedit_buffer.size();
             return true;
         }
         if (res.is_pending()) {
-            impl_->preedit_buffer = impl_->compose.current_sequence().to_string();
-            impl_->cursor_pos = impl_->preedit_buffer.size();
+            impl_->compose_preedit = impl_->compose.current_sequence().to_string();
+            if (impl_->preedit_buffer.empty()) {
+                impl_->cursor_pos = impl_->compose_preedit.size();
+            }
             return true;
         }
         if (is_compose_starter) {
@@ -198,13 +230,17 @@ std::string ImeEngine::commit_preedit() {
 
 void ImeEngine::clear_preedit() noexcept {
     impl_->preedit_buffer.clear();
+    impl_->compose_preedit.clear();
     impl_->cursor_pos = 0;
     impl_->candidates.clear();
     impl_->compose.reset();
 }
 
 std::string_view ImeEngine::preedit_text() const noexcept {
-    return impl_->preedit_buffer;
+    if (!impl_->preedit_buffer.empty()) {
+        return impl_->preedit_buffer;
+    }
+    return impl_->compose_preedit;
 }
 
 size_t ImeEngine::cursor_position() const noexcept {

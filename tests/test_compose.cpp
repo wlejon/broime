@@ -167,6 +167,14 @@ int main() {
         auto r_custom = engine.feed('o');
         CHECK_EQ(r_custom.status, ComposeResult::Matched);
         CHECK_EQ(r_custom.text, "🎉");
+
+        // Prefix rule on an existing interior node should also match when terminal
+        engine.add_rule("<Multi_key> <f> <o>", "✨");
+        engine.feed(keysyms::MultiKey);
+        engine.feed('f');
+        auto r_prefix = engine.feed('o');
+        CHECK_EQ(r_prefix.status, ComposeResult::Matched);
+        CHECK_EQ(r_prefix.text, "✨");
     }
 
     return bstest::finish("test_compose");

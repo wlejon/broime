@@ -85,6 +85,34 @@ int main() {
         engine.feed_key(keysyms::Return, &committed);
         CHECK_EQ(committed, "ni");
         CHECK(!engine.is_active());
+
+        // 6. Dead key during dictionary input does not erase dictionary preedit or drop non-matching follow-up
+        engine.feed_key('n', &committed);
+        engine.feed_key('i', &committed);
+        CHECK_EQ(engine.preedit_text(), "ni");
+        engine.feed_key(keysyms::DeadAcute, &committed);
+        CHECK_EQ(engine.preedit_text(), "ni");
+        // Follow with 'h' (not a valid DeadAcute target, should cancel compose and append 'h' to dictionary preedit)
+        engine.feed_key('h', &committed);
+        CHECK_EQ(engine.preedit_text(), "nih");
+        engine.feed_key('a', &committed);
+        engine.feed_key('o', &committed);
+        CHECK_EQ(engine.preedit_text(), "nihao");
+        engine.feed_key(keysyms::Space, &committed);
+        CHECK_EQ(committed, "nihao");
+    }
+
+    // 2b. Compose mode: ASCII accent starter followed by non-matching character is not swallowed
+    {
+        engine.set_mode(InputMode::Compose);
+        std::string committed;
+        bool consumed = engine.feed_key('\'', &committed);
+        CHECK(consumed);
+        CHECK(committed.empty());
+        consumed = engine.feed_key('t', &committed);
+        CHECK(consumed);
+        CHECK_EQ(committed, "'t");
+        CHECK(!engine.is_active());
     }
 
     // 3. Bypass mode
